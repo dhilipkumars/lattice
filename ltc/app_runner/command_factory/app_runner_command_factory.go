@@ -151,6 +151,17 @@ func (factory *AppRunnerCommandFactory) MakeCreateAppCommand() cli.Command {
 	return createAppCommand
 }
 
+func (factory *AppRunnerCommandFactory) MakeCreateAppFromJsonCommand() cli.Command {
+	var createAppFromJson = cli.Command{
+		Name:        "create-from-json",
+		Usage:       "Creates a docker app from JSON on lattice",
+		Description: "ltc create-from-json --json=/path/to/json",
+		Action:      factory.createAppFromJson,
+	}
+
+	return createAppFromJson
+}
+
 func (factory *AppRunnerCommandFactory) MakeScaleAppCommand() cli.Command {
 	var scaleAppCommand = cli.Command{
 		Name:        "scale",
@@ -308,6 +319,10 @@ func (factory *AppRunnerCommandFactory) createApp(context *cli.Context) {
 	} else {
 		factory.ui.Say(colors.Green(factory.urlForApp(name)))
 	}
+}
+
+func (factory *AppRunnerCommandFactory) createAppFromJson(context *cli.Context) {
+
 }
 
 func (factory *AppRunnerCommandFactory) scaleApp(c *cli.Context) {

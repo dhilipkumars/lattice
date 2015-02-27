@@ -52,6 +52,36 @@ var _ = Describe("CommandFactory", func() {
 		fakeExitHandler = &fake_exit_handler.FakeExitHandler{}
 	})
 
+	Describe("CreateJSONCommand", func() {
+		var createJsonCommand cli.Command
+
+		BeforeEach(func() {
+			clock = fakeclock.NewFakeClock(time.Now())
+
+			appRunnerCommandFactoryConfig = command_factory.AppRunnerCommandFactoryConfig{
+				AppRunner: appRunner,
+				UI:        terminalUI,
+				DockerMetadataFetcher: dockerMetadataFetcher,
+				Timeout:               timeout,
+				Domain:                domain,
+				Env:                   []string{},
+				Clock:                 clock,
+				Logger:                logger,
+			}
+
+			commandFactory := command_factory.NewAppRunnerCommandFactory(appRunnerCommandFactoryConfig)
+			createJsonCommand = commandFactory.MakeCreateAppFromJsonCommand()
+		})
+
+		PIt("reads in json from the specified path and sends it off to the receptor", func() {
+			args := []string{"~/mrbigglesworth/lrp.json"}
+
+			test_helpers.ExecuteCommandWithArgs(createJsonCommand, args)
+
+			Expect(outputBuffer).To(test_helpers.Say("Attempting to Create LRP from ~/mrbigglesworth/lrp.json"))
+		})
+	})
+
 	Describe("CreateAppCommand", func() {
 		var createCommand cli.Command
 
