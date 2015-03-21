@@ -14,6 +14,7 @@ import (
 	"github.com/cloudfoundry-incubator/lattice/ltc/logs/reserved_app_ids"
 	"github.com/cloudfoundry-incubator/lattice/ltc/output"
 	"github.com/cloudfoundry-incubator/lattice/ltc/test_helpers"
+        "github.com/cloudfoundry-incubator/lattice/ltc/app_examiner/fake_app_examiner"
 	"github.com/codegangsta/cli"
 )
 
@@ -35,10 +36,12 @@ var _ = Describe("CommandFactory", func() {
 	Describe("LogsCommand", func() {
 
 		var logsCommand cli.Command
+		var appExaminer  *fake_app_examiner.FakeAppExaminer
 
 		BeforeEach(func() {
 			commandFactory := command_factory.NewLogsCommandFactory(output.New(outputBuffer), fakeTailedLogsOutputter, exitHandler)
-			logsCommand = commandFactory.MakeLogsCommand()
+			appExaminer = &fake_app_examiner.FakeAppExaminer{}
+			logsCommand = commandFactory.MakeLogsCommand(appExaminer)
 		})
 
 		It("tails logs", func() {
