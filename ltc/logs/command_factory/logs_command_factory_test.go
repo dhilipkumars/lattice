@@ -66,15 +66,16 @@ var _ = Describe("CommandFactory", func() {
 			Expect(fakeTailedLogsOutputter.OutputTailedLogsCallCount()).To(Equal(0))
 		})
 
-		It("handles non existent appguids", func() {
+		It("handles non existent application", func() {
 			args := []string{
 				"non_existent_app",
 			}
-			appExaminer.AppStatusReturns(app_examiner.AppInfo{}, errors.New("App not found."))
-			test_helpers.ExecuteCommandWithArgs(logsCommand, args)
+			appExaminer.AppStatusReturns(app_examiner.AppInfo{}, errors.New("App not found.")) //The app examiner only returns App not found
+			test_helpers.AsyncExecuteCommandWithArgs(logsCommand, args)
 
-			Expect(outputBuffer).To(test_helpers.Say("App not found"))
-			Expect(fakeTailedLogsOutputter.OutputTailedLogsCallCount()).To(Equal(0))
+			Eventually(fakeTailedLogsOutputter.OutputTailedLogsCallCount).Should(Equal(1))
+			Expect(outputBuffer).To(test_helpers.Say("Application non_existent_app not found.\nTailing logs and waiting for non_existent_app to appear..."))
+
 		})
 	})
 

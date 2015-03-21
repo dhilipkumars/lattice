@@ -60,9 +60,9 @@ func (factory *logsCommandFactory) tailLogs(context *cli.Context) {
 	// Check if there is really such app before we start waiting for its logs.
 	_, err := factory.app.AppStatus(appGuid)
 
-	if err != nil {
-		factory.ui.Say(err.Error())
-		return
+	if err != nil && err.Error() == "App not found." {
+		factory.ui.SayLine("Application " + appGuid + " not found.")
+		factory.ui.SayLine("Tailing logs and waiting for " + appGuid + " to appear...")
 	}
 
 	factory.tailedLogsOutputter.OutputTailedLogs(appGuid)
