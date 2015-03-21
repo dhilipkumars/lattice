@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 
+	"github.com/cloudfoundry-incubator/lattice/ltc/app_examiner/fake_app_examiner"
 	"github.com/cloudfoundry-incubator/lattice/ltc/exit_handler"
 	"github.com/cloudfoundry-incubator/lattice/ltc/exit_handler/fake_exit_handler"
 	"github.com/cloudfoundry-incubator/lattice/ltc/logs/command_factory"
@@ -37,10 +38,12 @@ var _ = Describe("CommandFactory", func() {
 	Describe("LogsCommand", func() {
 
 		var logsCommand cli.Command
+		var appExaminer *fake_app_examiner.FakeAppExaminer
 
 		BeforeEach(func() {
 			commandFactory := command_factory.NewLogsCommandFactory(terminalUI, fakeTailedLogsOutputter, exitHandler)
-			logsCommand = commandFactory.MakeLogsCommand()
+			appExaminer = &fake_app_examiner.FakeAppExaminer{}
+			logsCommand = commandFactory.MakeLogsCommand(appExaminer)
 		})
 
 		It("tails logs", func() {
