@@ -69,13 +69,17 @@ func (factory *AppExaminerCommandFactory) MakeVisualizeCommand() cli.Command {
 			Name:  "rate, r",
 			Usage: "Visualization refresh rate (e.g., \".5s\" or \"10ms\")",
 		},
+		cli.BoolFlag{
+			Name:  "graphical, g",
+			Usage: "Visualize in a graphical screen",
+		},
 	}
 
 	var visualizeCommand = cli.Command{
 		Name:        "visualize",
 		Aliases:     []string{"vz"},
 		Usage:       "Shows a visualization of the workload distribution across the lattice cells",
-		Description: "ltc visualize [-r=DELAY]",
+		Description: "ltc visualize [-r=DELAY] [-g]",
 		Action:      factory.visualizeCells,
 		Flags:       visualizeFlags,
 	}
@@ -305,16 +309,39 @@ func (factory *AppExaminerCommandFactory) printInstanceInfo(actualInstances []ap
 
 func (factory *AppExaminerCommandFactory) visualizeCells(context *cli.Context) {
 	rate := context.Duration("rate")
-	if rate == 0 {
-		factory.ui.Say(colors.Bold("Distribution\n"))
-		factory.printDistribution()
+	graphical := context.Bool("graphical")
+
+	if graphical {
+		err := factory.printDistributionChart(rate)
+		if err != nil {
+			factory.ui.SayLine("Error Visualization:" + err.Error())
+		}
 		return
 	}
 
-	err := factory.printDistributionChart(rate)
-	if err != nil {
-		factory.ui.Say(err.Error())
+	factory.ui.Say(colors.Bold("Distribution\n"))
+	linesWritten := factory.printDistribution()
+	if rate == 0 {
+		return
 	}
+	closeChan := make(chan struct{})
+	factory.ui.Say(cursor.Hide())
+
+	factory.exitHandler.OnExit(func() {
+		closeChan <- struct{}{}
+		factory.ui.Say(cursor.Show())
+	})
+
+	for {
+		select {
+		case <-closeChan:
+			return
+		case <-factory.clock.NewTimer(rate).C():
+			factory.ui.Say(cursor.Up(linesWritten))
+			linesWritten = factory.printDistribution()
+		}
+	}
+
 }
 
 func (factory *AppExaminerCommandFactory) printDistribution() int {
@@ -426,34 +453,34 @@ func (factory *AppExaminerCommandFactory) printDistributionChart(rate time.Durat
 	//s.X = ((termui.TermWidth() / 2) - 15)
 	//s.Y = termui.TermHeight() - 2
 	s.HasBorder = false
-	
-	bg := termui.NewBarChart()
+
+	bg := termui.NewMBarChart()
 	bg.IsDisplay = false
-	bg.Data = []int{0}
+	bg.Data[0] = []int{0}
 	bg.DataLabels = []string{"1[M]"}
 	bg.Width = termui.TermWidth() - 10
 	bg.Height = termui.TermHeight() - 5
 	//bg.X = 5
 	//bg.Y = 2
-	bg.BarColor = termui.ColorGreen
-	bg.NumColor = termui.ColorRed
+	bg.BarColor[0] = termui.ColorGreen
+	bg.BarColor[1] = termui.ColorYellow
+	bg.NumColor[0] = termui.ColorRed
+	bg.NumColor[1] = termui.ColorRed
 	bg.TextColor = termui.ColorWhite
 	bg.Border.LabelFgColor = termui.ColorWhite
 	bg.Border.Label = "X-Axis: I[R/T]=CellIndex[Total Instance/Running Instance];[M]=Missing;[E]=Empty"
 	bg.BarWidth = 10
 	bg.BarGap = 1
-	
+
 	//12 colomn grid system
-	termui.Body.AddRows (termui.NewRow(termui.NewCol(12,5,p)))
-	termui.Body.AddRows (termui.NewRow(termui.NewCol(12,0,bg)))
-	termui.Body.AddRows (termui.NewRow(termui.NewCol(6,0,s), termui.NewCol(6,5,r)))
-						 
-	
+	termui.Body.AddRows(termui.NewRow(termui.NewCol(12, 5, p)))
+	termui.Body.AddRows(termui.NewRow(termui.NewCol(12, 0, bg)))
+	termui.Body.AddRows(termui.NewRow(termui.NewCol(6, 0, s), termui.NewCol(6, 5, r)))
+
 	termui.Body.Align()
-	
+
 	termui.Render(termui.Body)
-	
-	
+
 	bg.IsDisplay = true
 	evt := termui.EventCh()
 	for {
@@ -483,9 +510,9 @@ func (factory *AppExaminerCommandFactory) printDistributionChart(rate time.Durat
 				termui.Body.Width = termui.TermWidth()
 				termui.Body.Align()
 				termui.Render(termui.Body)
-			}		
+			}
 			break
-		
+
 		case <-factory.clock.NewTimer(rate).C():
 			err := factory.getProgressBars(bg)
 			if err != nil {
@@ -498,44 +525,45 @@ func (factory *AppExaminerCommandFactory) printDistributionChart(rate time.Durat
 	return nil
 }
 
-func (factory *AppExaminerCommandFactory) getProgressBars(bg *termui.BarChart)  error{
+func (factory *AppExaminerCommandFactory) getProgressBars(bg *termui.MBarChart) error {
 
-	//barIntList := make([]int, 0)
-	//barStringList := make([]string, 0)
-	var barIntList []int
+	var barIntList [2][]int
 	var barStringList []string
 
-	var per float64
 	var barLable string
+	maxTotal := -1
 
 	cells, err := factory.appExaminer.ListCells()
 	if err != nil {
 		return err
 	}
-	
-	barIntList = append(barIntList,100)
-	barStringList = append(barStringList, "Y-Ref in %")
-	
+
 	for i, cell := range cells {
-		
+
 		if cell.Missing {
-			per = 0.0
 			barLable = fmt.Sprintf("%d[M]", i+1)
-			
+
 		} else if cell.RunningInstances == 0 && cell.ClaimedInstances == 0 && !cell.Missing {
-			per = 0.0
 			barLable = fmt.Sprintf("%d[E]", i+1)
+			barIntList[0] = append(barIntList[0], 0)
+			barIntList[1] = append(barIntList[1], 0)
 		} else {
 
-			per = (float64(cell.RunningInstances) / float64((cell.RunningInstances + cell.ClaimedInstances))) * 100
-			barLable = fmt.Sprintf("%d[%d/%d]", i+1, cell.RunningInstances, cell.RunningInstances+cell.ClaimedInstances)
+			total := cell.RunningInstances + cell.ClaimedInstances
+			barIntList[0] = append(barIntList[0], cell.RunningInstances)
+			barIntList[1] = append(barIntList[1], cell.ClaimedInstances)
+			barLable = fmt.Sprintf("%d[%d/%d]", i+1, cell.RunningInstances, total)
+			if total > maxTotal {
+				maxTotal = total
+			}
 		}
-		barIntList = append(barIntList,int(per))
 		barStringList = append(barStringList, barLable)
 	}
-	
-	bg.Data = barIntList
+
+	bg.Data[0] = barIntList[0]
+	bg.Data[1] = barIntList[1]
 	bg.DataLabels = barStringList
-	
-	return  nil
+	bg.SetMax(maxTotal + 10)
+
+	return nil
 }
