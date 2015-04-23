@@ -3,7 +3,7 @@
 <table>
   <tr>
     <td>
-      <a href="http://lattice.cf"><img src="https://github.com/cloudfoundry-incubator/lattice/raw/develop/logos/lattice.png" align="left" width="200" ></a>
+      <a href="http://lattice.cf"><img src="https://raw.githubusercontent.com/cloudfoundry-incubator/lattice/master/docs/logos/lattice.png" align="left" width="200" ></a>
     </td>
     <td>
       Website: <a href="http://lattice.cf">http://lattice.cf</a><br>
@@ -70,7 +70,7 @@ vagrant up --provider vmware_fusion
 
 ### Networking Conflicts
 
-If you are trying to run both the VirtualBox and VMWare providers on the same machine, 
+If you are trying to run both the VirtualBox and VMWare providers on the same machine,
 you'll need to run them on different private networks (subnets) that do not conflict.
 
 Set the System IP to an address that does not conflict with the host networking configuration by passing the
@@ -99,7 +99,7 @@ DNS resolution for `xip.io` addresses can sometimes be flaky, resulting in error
 
 ```bash
  ltc target 192.168.11.11.xip.io
- Error verifying target: Get http://receptor.192.168.11.11.xip.io/v1/desired_lrps: 
+ Error verifying target: Get http://receptor.192.168.11.11.xip.io/v1/desired_lrps:
  dial tcp: lookup receptor.192.168.11.11.xip.io: no such host
 ```
 
@@ -136,7 +136,7 @@ VAGRANT_LATTICE_TAR_PATH=/path/to/lattice.tgz vagrant up
 
 This repository contains several [Terraform](https://www.terraform.io/) templates to help you deploy on your choice of IaaS.  To deploy Lattice in this way you will need:
 
-* [Terraform](https://www.terraform.io/intro/getting-started/install.html) >= 0.4.2 installed on your machine 
+* [Terraform](https://www.terraform.io/intro/getting-started/install.html) >= 0.4.2 installed on your machine
 * Credentials for your choice of IaaS
 
 ## Deploying
@@ -185,6 +185,8 @@ terraform destroy
 
 In the spirit of [free software](http://www.fsf.org/licensing/essays/free-sw.html), **everyone** is encouraged to help improve this project.
 
+Please submit pull requests against the **develop branch**. Only the continuous integration system commits to master.
+
 Here are some ways *you* can contribute:
 
 * by using alpha, beta, and prerelease versions
@@ -198,11 +200,6 @@ Here are some ways *you* can contribute:
 * by reviewing patches
 
 Also see the [Development Readme](https://github.com/cloudfoundry-incubator/lattice/tree/master/docs/development-readme.md)
-
-## Development Workflow
-
-Development work should be done on the develop branch.
-As a general rule, only CI should commit to master.
 
 ## Submitting an Issue
 We use the [GitHub issue tracker](https://github.com/cloudfoundry-incubator/lattice/issues) to track bugs and features.
@@ -222,5 +219,5 @@ details that may be necessary to reproduce the bug including the Lattice version
 
 # Copyright
 
-See [LICENSE](https://github.com/cloudfoundry-incubator/lattice/blob/master/LICENSE) for details.
+See [LICENSE](https://github.com/cloudfoundry-incubator/lattice/blob/master/docs/LICENSE) for details.
 Copyright (c) 2015 [Pivotal Software, Inc](http://www.pivotal.io/).
