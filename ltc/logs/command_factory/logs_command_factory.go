@@ -6,7 +6,6 @@ import (
 	"github.com/cloudfoundry-incubator/lattice/ltc/app_examiner"
 	"github.com/cloudfoundry-incubator/lattice/ltc/exit_handler"
 	"github.com/cloudfoundry-incubator/lattice/ltc/logs/console_tailed_logs_outputter"
-	"github.com/cloudfoundry-incubator/lattice/ltc/logs/reserved_app_ids"
 	"github.com/cloudfoundry-incubator/lattice/ltc/terminal"
 	"github.com/codegangsta/cli"
 )
@@ -41,12 +40,19 @@ func (factory *logsCommandFactory) MakeLogsCommand() cli.Command {
 }
 
 func (factory *logsCommandFactory) MakeDebugLogsCommand() cli.Command {
+	var debugLogsFlags = []cli.Flag{
+		cli.BoolFlag{
+			Name:  "raw",
+			Usage: "Removes pretty formatting",
+		},
+	}
 	return cli.Command{
 		Name:        "debug-logs",
 		Aliases:     []string{"dl"},
 		Usage:       "Streams logs from the lattice cluster components",
 		Description: "ltc debug-logs",
 		Action:      factory.tailDebugLogs,
+		Flags:       debugLogsFlags,
 	}
 }
 
@@ -54,7 +60,7 @@ func (factory *logsCommandFactory) tailLogs(context *cli.Context) {
 	appGuid := context.Args().First()
 
 	if appGuid == "" {
-		factory.ui.IncorrectUsage("")
+		factory.ui.SayIncorrectUsage("")
 		return
 	}
 
@@ -70,5 +76,6 @@ func (factory *logsCommandFactory) tailLogs(context *cli.Context) {
 }
 
 func (factory *logsCommandFactory) tailDebugLogs(context *cli.Context) {
-	factory.tailedLogsOutputter.OutputTailedLogs(reserved_app_ids.LatticeDebugLogStreamAppId)
+	rawFlag := context.Bool("raw")
+	factory.tailedLogsOutputter.OutputDebugLogs(!rawFlag)
 }

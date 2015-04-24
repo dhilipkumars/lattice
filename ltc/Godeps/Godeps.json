@@ -13,24 +13,24 @@
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/cf_http",
-			"Rev": "db1bf7202e706de8d7460c1b54494ac7ab481a59"
+			"Rev": "c89ab7949e78943b7c3c3583975e85f2a0b4e5c3"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/receptor",
-			"Rev": "6eb9e7079b2694b1a2fc2d9b0ebad3537b9c541e"
+			"Rev": "ff21b689ba421d236acb3438d03bd04ee3f66e75"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/runtime-schema/models",
-			"Rev": "83eb3d678d202dc4dc6c8fed282417c865aacc57"
+			"Rev": "8dfec851d0bc707ee76f3d0453ffcadef2ae5eec"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry/noaa",
-			"Rev": "92d89517244c5da5c279f889af344538a86891d1"
+			"Rev": "9e379db26bbd042ec0202d9679ed8d753b64e0df"
 		},
 		{
 			"ImportPath": "github.com/codegangsta/cli",
-			"Comment": "1.2.0-95-g9b2bd2b",
-			"Rev": "9b2bd2b3489748d4d0a204fa4eb2ee9e89e0ebc6"
+			"Comment": "1.2.0-98-g30b361b",
+			"Rev": "30b361bf66a60174a9589458afbf494478bafd00"
 		},
 		{
 			"ImportPath": "github.com/docker/docker/api",
@@ -162,8 +162,12 @@
 			"Rev": "c54fbb67c1f1e68d7d6f8d2ad7c9360404616a41"
 		},
 		{
+			"ImportPath": "github.com/gizak/termui",
+			"Rev": "fc47847f39d3c33df19cc8611232b6cec07f1f43"
+		},
+		{
 			"ImportPath": "github.com/gogo/protobuf/proto",
-			"Rev": "bc946d07d1016848dfd2507f90f0859c9471681e"
+			"Rev": "0ac967c269268f1af7d9bcc7927ccc9a589b2b36"
 		},
 		{
 			"ImportPath": "github.com/gorilla/context",
@@ -175,7 +179,16 @@
 		},
 		{
 			"ImportPath": "github.com/gorilla/websocket",
-			"Rev": "ab5b3a61f5b6aa323d66ece457334396c4ccdd03"
+			"Rev": "2dbddebb8266b93c5e6b119efb54e89043186f3f"
+		},
+		{
+			"ImportPath": "github.com/mattn/go-runewidth",
+			"Comment": "travisish-31-g58a0da4",
+			"Rev": "58a0da4ed7b321c9b5dfeffb7e03ee188fae1c60"
+		},
+		{
+			"ImportPath": "github.com/nsf/termbox-go",
+			"Rev": "bc836fdbcf75184c95c96500ea740e3dd727b5a8"
 		},
 		{
 			"ImportPath": "github.com/nu7hatch/gouuid",

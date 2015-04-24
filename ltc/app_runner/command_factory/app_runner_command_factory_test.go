@@ -131,6 +131,7 @@ var _ = Describe("CommandFactory", func() {
 				docker_app_runner.RouteOverride{HostnamePrefix: "route-1111-wahoo", Port: 1111},
 				docker_app_runner.RouteOverride{HostnamePrefix: "route-1111-me-too", Port: 1111},
 			}))
+			Expect(createDockerAppParameters.NoRoutes).To(BeFalse())
 			Expect(createDockerAppParameters.WorkingDir).To(Equal("/applications"))
 
 			Expect(outputBuffer).To(test_helpers.Say("Creating App: cool-web-app\n"))
@@ -412,6 +413,29 @@ var _ = Describe("CommandFactory", func() {
 				})
 			})
 
+		})
+
+		Context("when the --no-routes flag is passed", func() {
+			It("calls app runner with NoRoutes equal to true", func() {
+				args := []string{
+					"cool-web-app",
+					"superfun/app",
+					"--no-routes",
+					"--",
+					"/start-me-please",
+				}
+				appExaminer.RunningAppInstancesInfoReturns(1, false, nil)
+				dockerMetadataFetcher.FetchMetadataReturns(&docker_metadata_fetcher.ImageMetadata{}, nil)
+
+				test_helpers.ExecuteCommandWithArgs(createCommand, args)
+				Expect(appRunner.CreateDockerAppCallCount()).To(Equal(1))
+				createDockerAppParameters := appRunner.CreateDockerAppArgsForCall(0)
+
+				Expect(createDockerAppParameters.NoRoutes).To(BeTrue())
+
+				Expect(outputBuffer).NotTo(test_helpers.Say("App is reachable at:"))
+				Expect(outputBuffer).NotTo(test_helpers.Say("http://cool-web-app.192.168.11.11.xip.io"))
+			})
 		})
 
 		Context("when no working dir is provided, but the metadata has a working dir", func() {
@@ -752,10 +776,9 @@ var _ = Describe("CommandFactory", func() {
 	Describe("CreateLrpCommand", func() {
 		var (
 			createLrpCommand cli.Command
-
-			tmpDir  string
-			tmpFile *os.File
-			err     error
+			tmpDir           string
+			tmpFile          *os.File
+			err              error
 		)
 
 		BeforeEach(func() {
@@ -1060,6 +1083,25 @@ var _ = Describe("CommandFactory", func() {
 			Expect(routeOverrides).To(Equal(expectedRouteOverrides))
 		})
 
+		Context("when the --no-routes flag is passed", func() {
+			It("deregisters all the routes", func() {
+				args := []string{
+					"cool-web-app",
+					"--no-routes",
+				}
+
+				test_helpers.ExecuteCommandWithArgs(updateRoutesCommand, args)
+
+				Expect(appRunner.UpdateAppRoutesCallCount()).To(Equal(1))
+				name, routeOverrides := appRunner.UpdateAppRoutesArgsForCall(0)
+
+				Expect(name).To(Equal("cool-web-app"))
+				Expect(routeOverrides).To(Equal(docker_app_runner.RouteOverrides{}))
+
+				Expect(outputBuffer).To(test_helpers.Say("Updating cool-web-app routes. You can check this app's current routes by running 'ltc status cool-web-app'"))
+			})
+		})
+
 		Context("when the receptor returns errors", func() {
 			It("outputs error messages", func() {
 				args := []string{
@@ -1083,7 +1125,7 @@ var _ = Describe("CommandFactory", func() {
 
 				test_helpers.ExecuteCommandWithArgs(updateRoutesCommand, args)
 
-				Expect(outputBuffer).To(test_helpers.Say("Incorrect Usage: Please enter 'ltc update-routes APP_NAME NEW_ROUTES'"))
+				Expect(outputBuffer).To(test_helpers.Say("Incorrect Usage: Please enter 'ltc update-routes APP_NAME NEW_ROUTES' or pass '--no-routes' flag."))
 				Expect(appRunner.UpdateAppRoutesCallCount()).To(Equal(0))
 			})
 
@@ -1094,7 +1136,7 @@ var _ = Describe("CommandFactory", func() {
 
 				test_helpers.ExecuteCommandWithArgs(updateRoutesCommand, args)
 
-				Expect(outputBuffer).To(test_helpers.Say("Incorrect Usage: Please enter 'ltc update-routes APP_NAME NEW_ROUTES'"))
+				Expect(outputBuffer).To(test_helpers.Say("Incorrect Usage: Please enter 'ltc update-routes APP_NAME NEW_ROUTES' or pass '--no-routes' flag."))
 				Expect(appRunner.UpdateAppRoutesCallCount()).To(Equal(0))
 			})
 		})
@@ -1152,72 +1194,37 @@ var _ = Describe("CommandFactory", func() {
 				"cool",
 			}
 
-			appExaminer.AppExistsReturns(false, nil)
-
 			test_helpers.ExecuteCommandWithArgs(removeCommand, args)
 
 			Eventually(outputBuffer).Should(test_helpers.Say("Removing cool"))
-			Eventually(outputBuffer).Should(test_helpers.Say(colors.Green("Successfully Removed cool.")))
 
 			Expect(appRunner.RemoveAppCallCount()).To(Equal(1))
 			Expect(appRunner.RemoveAppArgsForCall(0)).To(Equal("cool"))
 		})
 
-		It("polls until the app is removed", func() {
+		It("removes multiple apps", func() {
+
 			args := []string{
-				"cool",
+				"app1",
+				"app2",
+				"app3",
 			}
 
-			appExaminer.AppExistsReturns(true, nil)
+			test_helpers.ExecuteCommandWithArgs(removeCommand, args)
 
-			commandFinishChan := test_helpers.AsyncExecuteCommandWithArgs(removeCommand, args)
+			Eventually(outputBuffer).Should(test_helpers.SayLine("Removing app1..."))
+			Eventually(outputBuffer).Should(test_helpers.SayLine("Removing app2..."))
+			Eventually(outputBuffer).Should(test_helpers.SayLine("Removing app3..."))
 
-			Eventually(outputBuffer).Should(test_helpers.Say("Removing cool"))
-
-			Expect(appExaminer.AppExistsCallCount()).To(Equal(1))
-			Expect(appExaminer.AppExistsArgsForCall(0)).To(Equal("cool"))
-
-			clock.IncrementBySeconds(1)
-			Eventually(outputBuffer).Should(test_helpers.Say("."))
-			clock.IncrementBySeconds(1)
-			Eventually(outputBuffer).Should(test_helpers.Say("."))
-
-			appExaminer.AppExistsReturns(false, nil)
-			clock.IncrementBySeconds(1)
-
-			Eventually(commandFinishChan).Should(BeClosed())
-
-			Eventually(outputBuffer).Should(test_helpers.SayNewLine())
-			Eventually(outputBuffer).Should(test_helpers.Say(colors.Green("Successfully Removed cool.")))
-		})
-
-		Context("when the app is not removed before the timeout elapses", func() {
-			It("alerts the user the app took too long to remove", func() {
-				appExaminer.AppExistsReturns(true, nil)
-				args := []string{
-					"cool-web-app",
-				}
-
-				commandFinishChan := test_helpers.AsyncExecuteCommandWithArgs(removeCommand, args)
-
-				Eventually(outputBuffer).Should(test_helpers.Say("Removing cool-web-app"))
-
-				clock.IncrementBySeconds(120)
-
-				Eventually(commandFinishChan).Should(BeClosed())
-
-				Expect(outputBuffer).To(test_helpers.Say(colors.Red("Timed out waiting for the container to shut down.")))
-				Expect(outputBuffer).To(test_helpers.SayNewLine())
-				Expect(outputBuffer).To(test_helpers.SayLine("Lattice will continue to shut down your container in the background."))
-				Expect(outputBuffer).To(test_helpers.SayLine("To view status:\n\tltc status cool-web-app"))
-			})
+			Expect(appRunner.RemoveAppCallCount()).To(Equal(3))
+			Expect(appRunner.RemoveAppArgsForCall(0)).To(Equal("app1"))
+			Expect(appRunner.RemoveAppArgsForCall(1)).To(Equal("app2"))
+			Expect(appRunner.RemoveAppArgsForCall(2)).To(Equal("app3"))
 		})
 
 		Context("invalid syntax", func() {
 			It("validates that the name is passed in", func() {
-				args := []string{
-					"",
-				}
+				args := []string{}
 
 				test_helpers.ExecuteCommandWithArgs(removeCommand, args)
 
@@ -1235,27 +1242,32 @@ var _ = Describe("CommandFactory", func() {
 
 				test_helpers.ExecuteCommandWithArgs(removeCommand, args)
 
-				Expect(outputBuffer).To(test_helpers.Say("Error Stopping App: Major Fault"))
+				Expect(outputBuffer).To(test_helpers.Say("Error stopping cool-web-app: Major Fault"))
+				Expect(appRunner.RemoveAppCallCount()).To(Equal(1))
 			})
 
-			It("reports a timeout when polling for the remove errors out", func() {
+			It("outputs error messages when trying to remove the app", func() {
 				args := []string{
-					"cool-web-app",
+					"app1",
+					"app2",
+					"app3",
 				}
-				appExaminer.AppExistsReturns(false, errors.New("Something Bad"))
 
-				commandFinishChan := test_helpers.AsyncExecuteCommandWithArgs(removeCommand, args)
+				appRunner.RemoveAppStub = func(name string) error {
+					if name == "app2" {
+						return errors.New("Major Fault")
+					}
+					return nil
+				}
 
-				Eventually(outputBuffer).Should(test_helpers.Say("Removing cool-web-app"))
+				test_helpers.ExecuteCommandWithArgs(removeCommand, args)
 
-				clock.IncrementBySeconds(120)
+				Expect(outputBuffer).To(test_helpers.SayLine("Removing app1..."))
+				Expect(outputBuffer).To(test_helpers.SayLine("Removing app2..."))
+				Expect(outputBuffer).To(test_helpers.SayLine("Error stopping app2: Major Fault"))
+				Expect(outputBuffer).To(test_helpers.SayLine("Removing app3..."))
 
-				Eventually(commandFinishChan).Should(BeClosed())
-
-				Expect(outputBuffer).To(test_helpers.Say(colors.Red("Timed out waiting for the container to shut down.")))
-				Expect(outputBuffer).To(test_helpers.SayNewLine())
-				Expect(outputBuffer).To(test_helpers.SayLine("Lattice will continue to shut down your container in the background."))
-				Expect(outputBuffer).To(test_helpers.SayLine("To view status:\n\tltc status cool-web-app"))
+				Expect(appRunner.RemoveAppCallCount()).To(Equal(3))
 			})
 		})
 

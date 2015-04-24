@@ -32,7 +32,7 @@ The available variables that can be configured are:
 * `aws_vpc_cidr_block`: The IPv4 address range that machines in the network are assigned to, represented as a CIDR block (default `10.0.0.0/16`)
 * `aws_subnet_cidr_block`: The IPv4 address range that machines in the network are assigned to, represented as a CIDR block (default `10.0.1.0/24`)
 * `aws_image`: The name of the image to base the launched instances (default `ubuntu trusty 64bit hvm ami`)
-* `aws_instance_type_coordinator`: The machine type to use for the Lattice Coordinator instance (default `m3.medium`)
+* `aws_instance_type_brain`: The machine type to use for the Lattice Brain instance (default `m3.medium`)
 * `aws_instance_type_cell`: The machine type to use for the Lattice Cells instances (default `m3.medium`)
 * `num_cells`: The number of Lattice Cells to launch (default `3`)
 * `lattice_username`: Lattice username (default `user`)
@@ -80,7 +80,13 @@ Destroy the cluster:
 terraform destroy
 ```
 
+### Notes
+
+The AWS Terraform configs now support Elastic IPs.  This means the cluster can be stopped  when it's not in-use (e.g., overnight to save on usage fees), and the Lattice cluster will retain the same target address when the instances are restarted.  In order to do this, use the [AWS EC2 Console](console.aws.amazon.com/ec2/), browse to Instances, and go to Instance State > Stop (or Start when reactivating) on the Lattice instances. 
+
+Please Note: There are hourly charges on having an Elastic IP provisioned but not associated to a running instance.  More details can be found on [AWS Pricing](http://aws.amazon.com/ec2/pricing/#Elastic_IP_Addresses).
+
 ## Copyright
 
-See [LICENSE](https://github.com/cloudfoundry-incubator/lattice/blob/master/LICENSE) for details.
+See [LICENSE](https://github.com/cloudfoundry-incubator/lattice/blob/master/docs/LICENSE) for details.
 Copyright (c) 2015 [Pivotal Software, Inc](http://www.pivotal.io/).

@@ -3,7 +3,7 @@
 <table>
   <tr>
     <td>
-      <a href="http://lattice.cf"><img src="https://github.com/cloudfoundry-incubator/lattice/raw/develop/logos/lattice.png" align="left" width="200" ></a>
+      <a href="http://lattice.cf"><img src="https://raw.githubusercontent.com/cloudfoundry-incubator/lattice/master/docs/logos/lattice.png" align="left" width="200" ></a>
     </td>
     <td>
       Website: <a href="http://lattice.cf">http://lattice.cf</a><br>
@@ -17,14 +17,14 @@ Lattice is an open source project for running containerized workloads on a clust
 Lattice is based on a number of open source [Cloud Foundry](http://cloudfoundry.org) components:
 
 - [Diego](https://github.com/cloudfoundry-incubator/diego-design-notes) schedules and monitors containerized workloads
-- [Doppler](https://github.com/cloudfoundry/loggregator) aggregates and streams application logs
+- [Loggregator](https://github.com/cloudfoundry/loggregator) aggregates and streams application logs
 - [Gorouter](https://github.com/cloudfoundry/gorouter) provides http load-balancing
 
 ## Deploy Lattice
 
 A [local deployment](#local-deployment) of Lattice can be launched with Vagrant.
 
-A scalable [cluster deployment](#clustered-deployment) of Lattice can be launched with Terraform.  We currently support [AWS](#amazon-web-services), [DigitalOcean](#digitalocean), and [Google Cloud](#google-cloud)
+A scalable [cluster deployment](#clustered-deployment) of Lattice can be launched with Terraform.  We currently support [AWS](terraform/aws/README.md), [DigitalOcean](terraform/digitalocean/README.md), and [Google Cloud](terraform/google/README.md)
 
 ## Use Lattice
 
@@ -70,11 +70,11 @@ vagrant up --provider vmware_fusion
 
 ### Networking Conflicts
 
-If you are trying to run both the VirtualBox and VMWare providers on the same machine, 
+If you are trying to run both the VirtualBox and VMWare providers on the same machine,
 you'll need to run them on different private networks (subnets) that do not conflict.
 
 Set the System IP to an address that does not conflict with the host networking configuration by passing the
-LATTICE_SYSTEM_IP environment variable to the vagrant up command:
+`LATTICE_SYSTEM_IP` environment variable to the vagrant up command:
 
 ```bash
 LATTICE_SYSTEM_IP=192.168.80.100 vagrant up
@@ -93,9 +93,36 @@ Currently, Lattice does not support updating via provision. So to update, you ha
 
 ## Troubleshooting
 
--  xip.io is sometimes flaky, resulting in no such host errors.
--  The alternative that we have found is to use dnsmasq configured to resolve all xip.io addresses to 192.168.11.11.
--  This also requires creating a /etc/resolvers/io file that points to 127.0.0.1. See further instructions [here] (http://passingcuriosity.com/2013/dnsmasq-dev-osx/). 
+### No such host errors
+
+DNS resolution for `xip.io` addresses can sometimes be flaky, resulting in errors such as the following:
+
+```bash
+ ltc target 192.168.11.11.xip.io
+ Error verifying target: Get http://receptor.192.168.11.11.xip.io/v1/desired_lrps:
+ dial tcp: lookup receptor.192.168.11.11.xip.io: no such host
+```
+
+First, check your networking DNS settings. Local "forwarding DNS" servers provided by some home routers can have trouble resolving `xip.io` addresses. Try setting your DNS to point to your real upstream DNS servers, or alternatively try using [Google DNS](https://developers.google.com/speed/public-dns/) by using `8.8.8.8` and/or `8.8.4.4`.
+
+Unfortunately `xip.io` itself also sometimes returns similar "no such host" errors. The recommended alternative is to follow the [dnsmasq instructions](https://github.com/cloudfoundry-incubator/lattice/blob/master/docs/dnsmasq-readme.md), pass the `LATTICE_SYSTEM_DOMAIN` environment variable to the vagrant up command, and target using `lattice.dev` instead of `192.168.11.11.xip.io` to point to the cluster, as follows:
+
+```
+LATTICE_SYSTEM_DOMAIN=lattice.dev vagrant up
+ltc target lattice.dev
+```
+
+### Miscellaneous
+
+If you have trouble running `vagrant up --provider virtualbox` with the error
+
+```
+default: Warning: Remote connection disconnect. Retrying...
+default: Warning: Authentication failure. Retrying...
+...
+```
+
+try upgrading to the latest VirtualBox.
 
 ## Running Vagrant with a custom Lattice tar
 
@@ -109,7 +136,7 @@ VAGRANT_LATTICE_TAR_PATH=/path/to/lattice.tgz vagrant up
 
 This repository contains several [Terraform](https://www.terraform.io/) templates to help you deploy on your choice of IaaS.  To deploy Lattice in this way you will need:
 
-* [Terraform](https://www.terraform.io/intro/getting-started/install.html) >= 0.3.7 installed on your machine
+* [Terraform](https://www.terraform.io/intro/getting-started/install.html) >= 0.4.2 installed on your machine
 * Credentials for your choice of IaaS
 
 ## Deploying
@@ -158,6 +185,8 @@ terraform destroy
 
 In the spirit of [free software](http://www.fsf.org/licensing/essays/free-sw.html), **everyone** is encouraged to help improve this project.
 
+Please submit pull requests against the **develop branch**. Only the continuous integration system commits to master.
+
 Here are some ways *you* can contribute:
 
 * by using alpha, beta, and prerelease versions
@@ -170,12 +199,7 @@ Here are some ways *you* can contribute:
 * by closing [issues](https://github.com/cloudfoundry-incubator/lattice/issues)
 * by reviewing patches
 
-Also see the [Development Readme](https://github.com/cloudfoundry-incubator/lattice/tree/master/development-readme.md)
-
-## Development Workflow
-
-Development work should be done on the develop branch.
-As a general rule, only CI should commit to master.
+Also see the [Development Readme](https://github.com/cloudfoundry-incubator/lattice/tree/master/docs/development-readme.md)
 
 ## Submitting an Issue
 We use the [GitHub issue tracker](https://github.com/cloudfoundry-incubator/lattice/issues) to track bugs and features.
@@ -195,5 +219,5 @@ details that may be necessary to reproduce the bug including the Lattice version
 
 # Copyright
 
-See [LICENSE](https://github.com/cloudfoundry-incubator/lattice/blob/master/LICENSE) for details.
+See [LICENSE](https://github.com/cloudfoundry-incubator/lattice/blob/master/docs/LICENSE) for details.
 Copyright (c) 2015 [Pivotal Software, Inc](http://www.pivotal.io/).

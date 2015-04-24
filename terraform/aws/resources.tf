@@ -54,16 +54,34 @@ resource "aws_security_group" "lattice-network" {
     }
 }
 
-resource "aws_instance" "lattice-coordinator" {
+resource "aws_eip" "ip" {
+    instance = "${aws_instance.lattice-brain.id}"
+    vpc = true
+    connection {
+        host = "${aws_eip.ip.public_ip}"
+        user = "${var.aws_ssh_user}"
+        key_file = "${var.aws_ssh_private_key_file}"
+    }
+    provisioner "remote-exec" {
+        inline = [       
+          "sudo sh -c 'echo \"SYSTEM_DOMAIN=${aws_eip.ip.public_ip}.xip.io\" >> /var/lattice/setup/lattice-environment'",
+          "sudo shutdown -r now"
+        ]   
+}
+
+
+}
+
+resource "aws_instance" "lattice-brain" {
     ami = "${lookup(var.aws_image, var.aws_region)}"
-    instance_type = "${var.aws_instance_type_coordinator}"
+    instance_type = "${var.aws_instance_type_brain}"
     key_name = "${var.aws_key_name}"
     subnet_id = "${aws_subnet.lattice-network.id}"
     security_groups = [
       "${aws_security_group.lattice-network.id}",
     ]
     tags {
-        Name = "lattice-coordinator"
+        Name = "lattice-brain"
     }
 
     connection {
@@ -73,7 +91,7 @@ resource "aws_instance" "lattice-coordinator" {
 
     #COMMON
     provisioner "local-exec" {
-      command = "LOCAL_LATTICE_TAR_PATH=${var.local_lattice_tar_path} LATTICE_VERSION_FILE_PATH=${path.module}/../../Version ${path.module}/../local-scripts/download-lattice-tar"
+      command = "LOCAL_LATTICE_TAR_PATH=${var.local_lattice_tar_path} LATTICE_VERSION_FILE_PATH=${path.module}/../../Version ${path.module}/../scripts/local/download-lattice-tar"
     }
 
     provisioner "file" {
@@ -82,13 +100,13 @@ resource "aws_instance" "lattice-coordinator" {
     }
 
     provisioner "file" {
-      source = "${path.module}/../remote-scripts/install_from_tar"
-      destination = "/tmp/install_from_tar"
+      source = "${path.module}/../scripts/remote/install-from-tar"
+      destination = "/tmp/install-from-tar"
     }
 
     provisioner "remote-exec" {
       inline = [
-          "sudo chmod 755 /tmp/install_from_tar",
+          "sudo chmod 755 /tmp/install-from-tar",
           "sudo bash -c \"echo 'PATH_TO_LATTICE_TAR=${var.local_lattice_tar_path}' >> /etc/environment\"" #SHOULDN'T PATH_TO_LATTICE_TAR be set to /tmp/lattice.tgz???
       ]
     }
@@ -99,17 +117,17 @@ resource "aws_instance" "lattice-coordinator" {
             "sudo mkdir -p /var/lattice/setup",
             "sudo sh -c 'echo \"LATTICE_USERNAME=${var.lattice_username}\" > /var/lattice/setup/lattice-environment'",
             "sudo sh -c 'echo \"LATTICE_PASSWORD=${var.lattice_password}\" >> /var/lattice/setup/lattice-environment'",
-            "sudo sh -c 'echo \"CONSUL_SERVER_IP=${aws_instance.lattice-coordinator.private_ip}\" >> /var/lattice/setup/lattice-environment'",
-            "sudo sh -c 'echo \"SYSTEM_DOMAIN=${aws_instance.lattice-coordinator.public_ip}.xip.io\" >> /var/lattice/setup/lattice-environment'",
+            "sudo sh -c 'echo \"CONSUL_SERVER_IP=${aws_instance.lattice-brain.private_ip}\" >> /var/lattice/setup/lattice-environment'",
         ]
     }
 
     provisioner "remote-exec" {
-        script = "${path.module}/../remote-scripts/install-lattice-coordinator"
+        script = "${path.module}/../scripts/remote/install-brain"
     }
 }
 
-resource "aws_instance" "lattice-cell" {
+resource "aws_instance" "cell" {
+    depends_on = ["aws_eip.ip"]
     count = "${var.num_cells}"
     ami = "${lookup(var.aws_image, var.aws_region)}"
     instance_type = "${var.aws_instance_type_cell}"
@@ -119,7 +137,7 @@ resource "aws_instance" "lattice-cell" {
       "${aws_security_group.lattice-network.id}",
     ]
     tags {
-        Name = "lattice-cell-${count.index}"
+        Name = "cell-${count.index}"
     }
 
     connection {
@@ -129,7 +147,7 @@ resource "aws_instance" "lattice-cell" {
 
     #COMMON
     provisioner "local-exec" {
-      command = "LOCAL_LATTICE_TAR_PATH=${var.local_lattice_tar_path} LATTICE_VERSION_FILE_PATH=${path.module}/../../Version ${path.module}/../local-scripts/download-lattice-tar"
+      command = "LOCAL_LATTICE_TAR_PATH=${var.local_lattice_tar_path} LATTICE_VERSION_FILE_PATH=${path.module}/../../Version ${path.module}/../scripts/local/download-lattice-tar"
     }
 
     provisioner "file" {
@@ -138,13 +156,13 @@ resource "aws_instance" "lattice-cell" {
     }
 
     provisioner "file" {
-      source = "${path.module}/../remote-scripts/install_from_tar"
-      destination = "/tmp/install_from_tar"
+      source = "${path.module}/../scripts/remote/install-from-tar"
+      destination = "/tmp/install-from-tar"
     }
 
     provisioner "remote-exec" {
       inline = [
-          "sudo chmod 755 /tmp/install_from_tar",
+          "sudo chmod 755 /tmp/install-from-tar",
           "sudo bash -c \"echo 'PATH_TO_LATTICE_TAR=${var.local_lattice_tar_path}' >> /etc/environment\""
       ]
     }
@@ -153,15 +171,17 @@ resource "aws_instance" "lattice-cell" {
     provisioner "remote-exec" {
         inline = [
             "sudo mkdir -p /var/lattice/setup",
-            "sudo sh -c 'echo \"CONSUL_SERVER_IP=${aws_instance.lattice-coordinator.private_ip}\" >> /var/lattice/setup/lattice-environment'",
-            "sudo sh -c 'echo \"SYSTEM_DOMAIN=${aws_instance.lattice-coordinator.public_ip}.xip.io\" >> /var/lattice/setup/lattice-environment'",
-            "sudo sh -c 'echo \"LATTICE_CELL_ID=lattice-cell-${count.index}\" >> /var/lattice/setup/lattice-environment'",
+            "sudo sh -c 'echo \"CONSUL_SERVER_IP=${aws_instance.lattice-brain.private_ip}\" >> /var/lattice/setup/lattice-environment'",
+            "sudo sh -c 'echo \"SYSTEM_DOMAIN=${aws_eip.ip.public_ip}.xip.io\" >> /var/lattice/setup/lattice-environment'",
+            "sudo sh -c 'echo \"LATTICE_CELL_ID=cell-${count.index}\" >> /var/lattice/setup/lattice-environment'",
             "sudo sh -c 'echo \"GARDEN_EXTERNAL_IP=$(hostname -I | awk '\"'\"'{ print $1 }'\"'\"')\" >> /var/lattice/setup/lattice-environment'",
         ]
     }
 
     provisioner "remote-exec" {
-        script = "${path.module}/../remote-scripts/install-lattice-cell"
+        script = "${path.module}/../scripts/remote/install-cell"
     }
 
 }
+
+

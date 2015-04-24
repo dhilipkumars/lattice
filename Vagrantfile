@@ -2,6 +2,7 @@ VAGRANTFILE_API_VERSION = "2"
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   system_ip = ENV["LATTICE_SYSTEM_IP"] || "192.168.11.11"
+  system_domain = ENV["LATTICE_SYSTEM_DOMAIN"] || "#{system_ip}.xip.io"
   config.vm.network "private_network", ip: system_ip
 
   config.vm.box = "lattice/ubuntu-trusty-64"
@@ -11,8 +12,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     populate_lattice_env_file_script = <<-SCRIPT
       mkdir -pv /var/lattice/setup
       echo "CONSUL_SERVER_IP=#{system_ip}" >> /var/lattice/setup/lattice-environment
-      echo "SYSTEM_DOMAIN=#{system_ip}.xip.io" >> /var/lattice/setup/lattice-environment
-      echo "LATTICE_CELL_ID=lattice-cell-01" >> /var/lattice/setup/lattice-environment
+      echo "SYSTEM_DOMAIN=#{system_domain}" >> /var/lattice/setup/lattice-environment
+      echo "LATTICE_CELL_ID=cell-01" >> /var/lattice/setup/lattice-environment
       echo "GARDEN_EXTERNAL_IP=#{system_ip}" >> /var/lattice/setup/lattice-environment
     SCRIPT
 
@@ -24,15 +25,15 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   end
 
   lattice_tar_version=File.read(File.join(File.dirname(__FILE__), "Version")).chomp
-  system 'git show-ref --tags --quiet --verify -- "refs/tags/' + "#{lattice_tar_version}" + '"'
+  system 'egrep -q \'\-[[:digit:]]+-g[0-9a-fA-F]{7,10}$\' ' + File.join(File.dirname(__FILE__), "Version")
   if $? == 0
-    lattice_tar_url="https://s3-us-west-2.amazonaws.com/lattice/releases/#{lattice_tar_version}/lattice.tgz"
-  else
     lattice_tar_url="https://s3-us-west-2.amazonaws.com/lattice/unstable/#{lattice_tar_version}/lattice.tgz"
+  else
+    lattice_tar_url="https://s3-us-west-2.amazonaws.com/lattice/releases/#{lattice_tar_version}/lattice.tgz"
   end
 
   config.vm.provision "shell" do |s|
-    s.path = "install_from_tar"
+    s.path = "cluster/scripts/install_from_tar"
     s.args = ["collocated", ENV["VAGRANT_LATTICE_TAR_PATH"].to_s, lattice_tar_url]
   end
 
