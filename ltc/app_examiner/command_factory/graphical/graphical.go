@@ -3,6 +3,8 @@ package graphical
 import (
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/cloudfoundry-incubator/lattice/ltc/app_examiner"
@@ -142,6 +144,7 @@ func getProgressBars(appExaminer app_examiner.AppExaminer, bg *termui.MBarChart)
 	var barStringList []string
 
 	var barLabel string
+	var cellIndex int
 	maxTotal := -1
 
 	cells, err := appExaminer.ListCells()
@@ -160,10 +163,16 @@ func getProgressBars(appExaminer app_examiner.AppExaminer, bg *termui.MBarChart)
 			barIntList[1] = append(barIntList[1], 0)
 		} else {
 
+			cellNames := strings.Split(cell.CellID, "-")
+			if len(cellNames) == 3 { //The cell name is usually of the form lattice-cell-[CellNumber]
+				cellIndex, _ = strconv.Atoi(cellNames[2])
+			} else { //Otherwise print the index of this cell
+				cellIndex = i + 1
+			}
 			total := cell.RunningInstances + cell.ClaimedInstances
 			barIntList[0] = append(barIntList[0], cell.RunningInstances)
 			barIntList[1] = append(barIntList[1], cell.ClaimedInstances)
-			barLabel = fmt.Sprintf("%d[%d/%d]", i+1, cell.RunningInstances, total)
+			barLabel = fmt.Sprintf("%d[%d/%d]", cellIndex, cell.RunningInstances, total)
 			if total > maxTotal {
 				maxTotal = total
 			}
