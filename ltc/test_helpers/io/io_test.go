@@ -10,7 +10,7 @@ import (
 )
 
 var _ = Describe("io helpers", func() {
-	FIt("will never overflow the pipe", func() {
+	It("will never overflow the pipe", func() {
 		str := strings.Repeat("z", 75000)
 		output := CaptureOutput(func() {
 			os.Stdout.Write([]byte(str))

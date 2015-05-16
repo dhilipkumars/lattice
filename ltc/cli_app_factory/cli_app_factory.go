@@ -166,16 +166,21 @@ func defaultVersion(latticeVersion string) string {
 	}
 	return latticeVersion
 }
+
 func appHelpTemplate() string {
 	return `NAME:
    {{.Name}} - {{.Usage}}
+
 USAGE:
    {{.Name}} {{if .Flags}}[global options] {{end}}command{{if .Flags}} [command options]{{end}} [arguments...]
+
 VERSION:
    {{.Version}}
+
 AUTHOR(S): 
    {{range .Authors}}{{.}}
    {{end}}
+
 COMMANDS: 
    {{range .Commands}}
   {{.SubTitle .Name}}{{range .CommandSubGroups}}

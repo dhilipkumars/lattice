@@ -90,6 +90,7 @@ func newAppPresenter(app *cli.App) (presenter appPresenter) {
 			Name: "SEE WHATS RUNNING",
 			CommandSubGroups: [][]cmdPresenter{
 				{
+					presentCommand("cells"),
 					presentCommand("list"),
 					presentCommand("status"),
 					presentCommand("visualize"),
