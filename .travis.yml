@@ -2,6 +2,7 @@ branches:
   only:
     - develop
     - master
+    - ShwethaKumbla-hwcf-issue-10
 
 language: go
 go:
