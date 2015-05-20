@@ -44,6 +44,7 @@ OPTIONS:
 {{end}}{{else}}
 {{end}}`, badFlags)
 }
+
 func matchArgAndFlags(flags []string, args []string) string {
 	var badFlag string
 	var lastPassed bool
@@ -94,6 +95,7 @@ Loop:
 	}
 	return badFlag
 }
+
 func requestHelp(args []string) bool {
 	for _, v := range args {
 		if v == "-h" || v == "--help" {
@@ -102,12 +104,14 @@ func requestHelp(args []string) bool {
 	}
 	return false
 }
+
 func callCoreCommand(args []string, cliApp *cli.App) {
 	err := cliApp.Run(args)
 	if err != nil {
 		os.Exit(1)
 	}
 }
+
 func GetCommandFlags(app *cli.App, command string) []string {
 	cmd, err := GetByCmdName(app, command)
 	if err != nil {
@@ -131,6 +135,7 @@ func GetCommandFlags(app *cli.App, command string) []string {
 	}
 	return flags
 }
+
 func GetByCmdName(app *cli.App, cmdName string) (cmd *cli.Command, err error) {
 	cmd = app.Command(cmdName)
 	if cmd == nil {
